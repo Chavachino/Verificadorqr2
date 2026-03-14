@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VerificaQR — Control de Partes</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0f19;
+    --surface: #111827;
+    --surface2: #1a2335;
+    --border: #1e3a5f;
+    --border2: #2a4a7f;
+    --accent: #2563eb;
+    --accent2: #1d4ed8;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --muted2: #94a3b8;
+    --success-bg: #052e16;
+    --success-border: #166534;
+    --success-text: #4ade80;
+    --error-bg: #2d0a0a;
+    --error-border: #991b1b;
+    --error-text: #f87171;
+    --warn: #fbbf24;
+    --radius: 10px;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .topbar-clock {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted2);
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; padding: 20px 16px; min-height: calc(100vh - 48px); }
+  .screen.active { display: block; }
+
+  /* ── LOGIN ── */
+  .login-hero {
+    text-align: center;
+    padding: 48px 0 36px;
+  }
+  .login-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 18px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-title {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .login-sub {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .login-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 32px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%;
+    padding: 15px 20px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary { background: var(--surface2); color: var(--muted2); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
+  .btn-sm {
+    width: auto;
+    padding: 8px 14px;
+    font-size: 10px;
+    border-radius: 7px;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── OPERATOR CARD ── */
+  .op-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .op-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .op-name {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .op-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 16px;
+  }
+  .op-meta span { color: var(--muted2); }
+  .op-change-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .op-change-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── SCAN CARDS ── */
+  .scan-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 74px;
+  }
+  .scan-card:hover { border-color: var(--border2); background: var(--surface2); }
+  .scan-card.done { border-color: #0f766e; background: #041f1d; }
+  .scan-card.locked { cursor: not-allowed; opacity: 0.5; }
+  .scan-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .scan-card.done .scan-card-icon { background: #052e1a; border-color: #0f766e; }
+  .scan-card-body { flex: 1; min-width: 0; }
+  .scan-card-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .scan-card-action {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  .scan-card.done .scan-card-action { color: #14b8a6; }
+  .scan-card-value {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 3px;
+    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── RESULT BANNER ── */
+  .result-banner {
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .result-banner.show { display: block; }
+  .result-banner.match { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
+  .result-banner.nomatch { background: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── NUMPAD OVERLAY ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .overlay-panel {
+    background: var(--surface);
+    border-top: 1px solid var(--border2);
+    border-radius: 18px 18px 0 0;
+    padding: 24px 16px 32px;
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .overlay-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  /* numpad display */
+  .np-display {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 14px 20px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 12px;
+    margin-bottom: 8px;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .np-error {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--error-text);
+    min-height: 18px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .np-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .np-key {
+    padding: 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.1s;
+    text-align: center;
+  }
+  .np-key:active { background: var(--accent); border-color: var(--accent); transform: scale(0.95); }
+  .np-key.del { background: #2d1a1a; border-color: #5c2020; color: var(--error-text); font-size: 16px; }
+  .np-key.ok { background: var(--accent); border-color: var(--accent); color: #fff; font-size: 14px; }
+  .np-key.ok:disabled { background: var(--surface2); border-color: var(--border); color: var(--muted); cursor: not-allowed; }
+  .np-key.cancel { background: transparent; border-color: var(--border); color: var(--muted); font-size: 11px; letter-spacing: 1px; }
+
+  /* ── CSV UPLOAD ── */
+  .upload-zone {
+    background: var(--surface2);
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+  .upload-zone:hover { border-color: var(--accent); }
+  .upload-zone input { display: none; }
+  .upload-zone-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted2);
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 8px;
+  }
+  .upload-status {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .upload-status.ok { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); display: block; }
+  .upload-status.err { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); display: block; }
+
+  /* ── SCANNER OVERLAY ── */
+  .scanner-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 300;
+    display: none;
+    flex-direction: column;
+  }
+  .scanner-overlay.open { display: flex; }
+  .scanner-header {
+    background: rgba(0,0,0,0.7);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+  }
+  .scanner-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+  .scanner-close {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #reader {
+    width: 100%;
+    height: 100vh;
+  }
+  #reader video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+  .scanner-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* ── DB SCREEN ── */
+  .db-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .db-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .db-date-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+  }
+  .db-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  .db-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 10px;
+    min-width: 520px;
+  }
+  .db-table th {
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .db-table td {
+    padding: 9px 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted2);
+    white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .db-table tr:last-child td { border-bottom: none; }
+  .db-table tr:hover td { background: var(--surface2); }
+  .badge-ok { color: var(--success-text); font-weight: 700; }
+  .badge-fail { color: var(--error-text); font-weight: 700; }
+  .db-empty {
+    text-align: center;
+    padding: 40px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+  .db-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .drive-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 10px;
+    display: none;
+  }
+  .drive-status.ok { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); display: block; }
+  .drive-status.err { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); display: block; }
+  .drive-status.info { background: var(--surface2); color: var(--accent); border: 1px solid var(--border2); display: block; }
+
+  /* setup screen */
+  .setup-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .step-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: var(--muted2);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .input-field {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    margin-bottom: 8px;
+    outline: none;
+  }
+  .input-field:focus { border-color: var(--accent); }
+  .input-field::placeholder { color: var(--muted); }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+
+  /* bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: none;
+    padding: 8px 0 16px;
+    z-index: 40;
+  }
+  .bottom-nav.show { display: flex; }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: all 0.15s;
+  }
+  .nav-icon { font-size: 20px; }
+  .nav-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .nav-item.active .nav-label { color: var(--accent); }
+
+  .pb { padding-bottom: 80px; }
+
+  /* google auth button */
+  .google-btn {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.15s;
+    margin-bottom: 10px;
+  }
+  .google-btn:hover { border-color: var(--accent); }
+  .google-btn:active { transform: scale(0.97); }
+  .g-icon {
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: #4285F4;
+    flex-shrink: 0;
+  }
+  .auth-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+  .auth-status.connected { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+  .auth-status.disconnected { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 8px; }
+  .dot.green { background: var(--success-text); }
+  .dot.gray { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-brand">▪ VERIF-QR</span>
+  <span class="topbar-clock" id="clockEl">--:--:--</span>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: LOGIN
+══════════════════════════════════════ -->
+<div class="screen active" id="screenLogin">
+  <div class="login-hero">
+    <div class="login-icon">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <rect x="3" y="3" width="13" height="13" rx="2" stroke="#2563eb" stroke-width="1.5"/>
+        <rect x="6" y="6" width="7" height="7" rx="1" fill="#2563eb"/>
+        <rect x="20" y="3" width="13" height="13" rx="2" stroke="#2563eb" stroke-width="1.5"/>
+        <rect x="23" y="6" width="7" height="7" rx="1" fill="#2563eb"/>
+        <rect x="3" y="20" width="13" height="13" rx="2" stroke="#2563eb" stroke-width="1.5"/>
+        <rect x="6" y="23" width="7" height="7" rx="1" fill="#2563eb"/>
+        <rect x="20" y="20" width="5" height="5" rx="1" fill="#2563eb"/>
+        <rect x="28" y="20" width="5" height="5" rx="1" fill="#2563eb"/>
+        <rect x="24" y="24" width="5" height="5" rx="1" fill="#2563eb"/>
+        <rect x="20" y="28" width="5" height="5" rx="1" fill="#2563eb"/>
+        <rect x="28" y="28" width="5" height="5" rx="1" fill="#2563eb"/>
+      </svg>
+    </div>
+    <div class="login-title">VerificaQR</div>
+    <div class="login-sub">Control de partes — Producción</div>
+  </div>
+  <div class="login-actions">
+    <button class="btn btn-primary" onclick="showNumpad('login')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="4" height="4" rx="0.5" fill="white"/><rect x="6" y="1" width="4" height="4" rx="0.5" fill="white"/><rect x="11" y="1" width="4" height="4" rx="0.5" fill="white"/><rect x="1" y="6" width="4" height="4" rx="0.5" fill="white"/><rect x="6" y="6" width="4" height="4" rx="0.5" fill="white"/><rect x="11" y="6" width="4" height="4" rx="0.5" fill="white"/><rect x="1" y="11" width="4" height="4" rx="0.5" fill="white"/><rect x="6" y="11" width="4" height="4" rx="0.5" fill="white"/><rect x="11" y="11" width="4" height="4" rx="0.5" fill="white"/></svg>
+      INGRESAR # DE EMPLEADO
+    </button>
+    <button class="btn btn-secondary" onclick="showScreen('screenSetup')">
+      ⚙ CONFIGURACIÓN INICIAL
+    </button>
+  </div>
+  <div style="margin-top:24px;">
+    <div class="section-label">Estado de empleados</div>
+    <div id="loginEmpStatus" style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      Sin lista cargada — ve a Configuración
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: SETUP
+══════════════════════════════════════ -->
+<div class="screen" id="screenSetup">
+  <div style="margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+    <button class="btn btn-secondary btn-sm" onclick="showScreen('screenLogin')">← Volver</button>
+    <span style="font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:2px;">CONFIGURACIÓN</span>
+  </div>
+
+  <!-- STEP 1: Cargar empleados -->
+  <div class="setup-step">
+    <div class="step-num">PASO 1 — EMPLEADOS</div>
+    <div class="step-title">Cargar lista de empleados</div>
+    <div class="step-desc">
+      Sube un archivo CSV o Excel con dos columnas:<br>
+      <code style="color:var(--accent);">NUMERO,NOMBRE</code><br>
+      Ejemplo: <code style="color:var(--muted2);">10001,Carlos Ramírez</code>
+    </div>
+    <div class="upload-zone" onclick="document.getElementById('csvFile').click()">
+      <input type="file" id="csvFile" accept=".csv,.xlsx,.xls" onchange="handleCSV(this)">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="margin:0 auto;display:block;">
+        <path d="M16 4v16M8 12l8-8 8 8" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="4" y="24" width="24" height="4" rx="2" fill="#1e3a5f"/>
+      </svg>
+      <span class="upload-zone-label">Toca para seleccionar archivo<br><span style="color:var(--muted);font-size:10px;">CSV, XLSX, XLS</span></span>
+    </div>
+    <div class="upload-status" id="uploadStatus"></div>
+    <div id="empPreview" style="display:none;">
+      <div class="section-label" style="margin-top:8px;">Vista previa</div>
+      <div id="empList" style="font-family:var(--mono);font-size:11px;color:var(--muted2);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:120px;overflow-y:auto;line-height:1.8;"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Google Drive -->
+  <div class="setup-step">
+    <div class="step-num">PASO 2 — GOOGLE DRIVE</div>
+    <div class="step-title">Conectar Google Drive</div>
+    <div class="step-desc">
+      Los registros se guardarán automáticamente en tu Drive dentro de una carpeta con la fecha del día (ej: <code style="color:var(--accent);">2025-01-15</code>).
+    </div>
+    <input class="input-field" id="driveClientId" placeholder="Client ID de Google API (OAuth 2.0)">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:var(--mono);">
+      Obtén tu Client ID en <span style="color:var(--accent);">console.cloud.google.com</span> → Credenciales → OAuth 2.0
+    </div>
+    <button class="google-btn" onclick="initGoogleAuth()">
+      <div class="g-icon">G</div>
+      Conectar con Google
+    </button>
+    <div class="auth-status disconnected" id="authStatus">
+      <span class="dot gray"></span>No conectado
+    </div>
+  </div>
+
+  <button class="btn btn-primary" style="margin-top:8px;" onclick="saveSetupAndReturn()">
+    ✓ GUARDAR Y CONTINUAR
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: MAIN — ESCANEO
+══════════════════════════════════════ -->
+<div class="screen pb" id="screenMain">
+  <!-- Title -->
+  <div style="text-align:center;margin-bottom:18px;padding-top:4px;">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px;">▪ ▪ ▪</div>
+    <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);letter-spacing:4px;text-transform:uppercase;">LOGÍSTICA INTERNA</div>
+    <div style="width:40px;height:2px;background:var(--accent);margin:8px auto 0;border-radius:2px;"></div>
+  </div>
+  <!-- Operator card -->
+  <div class="op-card">
+    <div class="op-label">Operador activo</div>
+    <div class="op-name" id="opName">—</div>
+    <div class="op-meta">
+      <span>Clave: <span id="opId">—</span></span>
+      <span id="opDate">—</span>
+    </div>
+    <button class="op-change-btn" onclick="showNumpad('change')">⇄ CAMBIAR OPERADOR</button>
+  </div>
+
+  <!-- Scan 1 -->
+  <div class="section-label">Escaneos del turno</div>
+  <div class="scan-card" id="scan1card" onclick="startScan(1)">
+    <div class="scan-card-icon" id="scan1icon">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <rect x="1" y="1" width="8" height="8" rx="1" stroke="#2563eb" stroke-width="1.2"/>
+        <rect x="3" y="3" width="4" height="4" rx="0.5" fill="#2563eb"/>
+        <rect x="13" y="1" width="8" height="8" rx="1" stroke="#2563eb" stroke-width="1.2"/>
+        <rect x="15" y="3" width="4" height="4" rx="0.5" fill="#2563eb"/>
+        <rect x="1" y="13" width="8" height="8" rx="1" stroke="#2563eb" stroke-width="1.2"/>
+        <rect x="3" y="15" width="4" height="4" rx="0.5" fill="#2563eb"/>
+        <rect x="13" y="13" width="3" height="3" rx="0.5" fill="#2563eb"/>
+        <rect x="19" y="13" width="3" height="3" rx="0.5" fill="#2563eb"/>
+        <rect x="16" y="16" width="3" height="3" rx="0.5" fill="#2563eb"/>
+        <rect x="13" y="19" width="3" height="3" rx="0.5" fill="#2563eb"/>
+        <rect x="19" y="19" width="3" height="3" rx="0.5" fill="#2563eb"/>
+      </svg>
+    </div>
+    <div class="scan-card-body">
+      <div class="scan-card-label">Escaneo 1 — Referencia</div>
+      <div class="scan-card-action" id="scan1action">TOCA PARA ESCANEAR</div>
+      <div class="scan-card-value" id="scan1val" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Scan 2 -->
+  <div class="scan-card locked" id="scan2card" onclick="startScan(2)">
+    <div class="scan-card-icon" id="scan2icon">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <rect x="1" y="1" width="8" height="8" rx="1" stroke="#64748b" stroke-width="1.2"/>
+        <rect x="3" y="3" width="4" height="4" rx="0.5" fill="#64748b"/>
+        <rect x="13" y="1" width="8" height="8" rx="1" stroke="#64748b" stroke-width="1.2"/>
+        <rect x="15" y="3" width="4" height="4" rx="0.5" fill="#64748b"/>
+        <rect x="1" y="13" width="8" height="8" rx="1" stroke="#64748b" stroke-width="1.2"/>
+        <rect x="3" y="15" width="4" height="4" rx="0.5" fill="#64748b"/>
+        <rect x="13" y="13" width="3" height="3" rx="0.5" fill="#64748b"/>
+        <rect x="19" y="13" width="3" height="3" rx="0.5" fill="#64748b"/>
+        <rect x="16" y="16" width="3" height="3" rx="0.5" fill="#64748b"/>
+        <rect x="13" y="19" width="3" height="3" rx="0.5" fill="#64748b"/>
+        <rect x="19" y="19" width="3" height="3" rx="0.5" fill="#64748b"/>
+      </svg>
+    </div>
+    <div class="scan-card-body">
+      <div class="scan-card-label">Escaneo 2 — Verificación</div>
+      <div class="scan-card-action" id="scan2action" style="color:var(--muted)">ESCANEA PRIMERO EL 1°</div>
+      <div class="scan-card-value" id="scan2val" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-banner" id="resultBanner"></div>
+
+  <!-- Actions -->
+  <button class="btn btn-secondary" style="margin-bottom:10px;" onclick="resetScans()">↺ NUEVO ESCANEO</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: DATABASE
+══════════════════════════════════════ -->
+<div class="screen pb" id="screenDB">
+  <div class="db-header">
+    <span class="db-title">▪ REGISTROS</span>
+    <span class="db-date-badge" id="dbDateBadge">HOY</span>
+  </div>
+  <div class="db-table-wrap">
+    <table class="db-table">
+      <thead>
+        <tr>
+          <th># EMP</th>
+          <th>SCAN 1</th>
+          <th>SCAN 2</th>
+          <th>FECHA</th>
+          <th>HORA</th>
+          <th>RESULT</th>
+        </tr>
+      </thead>
+      <tbody id="dbBody"></tbody>
+    </table>
+    <div class="db-empty" id="dbEmpty" style="display:none;">SIN REGISTROS HOY</div>
+  </div>
+  <div class="db-actions">
+    <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="downloadCSV()">⬇ DESCARGAR CSV</button>
+    <button class="btn btn-secondary btn-sm" style="flex:1;" id="driveSyncBtn" onclick="syncToDrive()">☁ SYNC DRIVE</button>
+  </div>
+  <div class="drive-status" id="driveStatus"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     BOTTOM NAV
+══════════════════════════════════════ -->
+<div class="bottom-nav" id="bottomNav">
+  <div class="nav-item active" id="nav-main" onclick="navTo('screenMain','nav-main')">
+    <span class="nav-icon">⬡</span>
+    <span class="nav-label">ESCANEO</span>
+  </div>
+  <div class="nav-item" id="nav-db" onclick="navTo('screenDB','nav-db')">
+    <span class="nav-icon">▤</span>
+    <span class="nav-label">REGISTROS</span>
+  </div>
+  <div class="nav-item" id="nav-cfg" onclick="navTo('screenSetup','nav-cfg')">
+    <span class="nav-icon">⚙</span>
+    <span class="nav-label">CONFIG</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     NUMPAD OVERLAY
+══════════════════════════════════════ -->
+<div class="overlay" id="numpadOverlay">
+  <div class="overlay-panel">
+    <div class="overlay-title">INGRESA TU # DE EMPLEADO</div>
+    <div class="np-display" id="npDisplay">_ _ _ _ _</div>
+    <div class="np-error" id="npError"></div>
+    <div class="np-grid">
+      <button class="np-key" onclick="npKey('1')">1</button>
+      <button class="np-key" onclick="npKey('2')">2</button>
+      <button class="np-key" onclick="npKey('3')">3</button>
+      <button class="np-key" onclick="npKey('4')">4</button>
+      <button class="np-key" onclick="npKey('5')">5</button>
+      <button class="np-key" onclick="npKey('6')">6</button>
+      <button class="np-key" onclick="npKey('7')">7</button>
+      <button class="np-key" onclick="npKey('8')">8</button>
+      <button class="np-key" onclick="npKey('9')">9</button>
+      <button class="np-key cancel" onclick="closeNumpad()">CANCEL</button>
+      <button class="np-key" onclick="npKey('0')">0</button>
+      <button class="np-key del" onclick="npDel()">⌫</button>
+    </div>
+    <button class="np-key ok" id="npOk" onclick="npConfirm()" disabled style="width:100%;padding:16px;font-size:13px;letter-spacing:2px;">CONFIRMAR ✓</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCANNER OVERLAY
+══════════════════════════════════════ -->
+<div class="scanner-overlay" id="scannerOverlay">
+  <div class="scanner-header">
+    <span class="scanner-title" id="scannerLabel">ESCANEO 1</span>
+    <button class="scanner-close" onclick="stopScan()">✕</button>
+  </div>
+  <div id="reader"></div>
+  <div class="scanner-hint">Apunta la cámara al código QR o de barras</div>
+</div>
+
+<script>
+// ════════════════════════════════
+// STATE
+// ════════════════════════════════
+let employees = {};   // { '10001': 'Carlos Ramírez', ... }
+let currentOp = null; // { id, name }
+let scan1Val = null;
+let scan2Val = null;
+let npMode = '';
+let npVal = '';
+let dbRecords = JSON.parse(localStorage.getItem('verif_records') || '[]');
+let scanTarget = 0;
+let html5QrCode = null;
+let gapiReady = false;
+let accessToken = null;
+let driveClientId = localStorage.getItem('driveClientId') || '';
+
+// ════════════════════════════════
+// CLOCK
+// ════════════════════════════════
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function getTimeStr(){
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function getDateStr(){
+  const d = new Date();
+  const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+  return `${dias[d.getDay()]}/${pad(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)}`;
+}
+
+function getFileDateStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+setInterval(()=>{
+  document.getElementById('clockEl').textContent = getTimeStr();
+  if(currentOp) document.getElementById('opDate').textContent = getDateStr();
+}, 1000);
+document.getElementById('clockEl').textContent = getTimeStr();
+
+// ════════════════════════════════
+// SCREEN NAVIGATION
+// ════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function navTo(screenId, navId){
+  if(screenId === 'screenMain' || screenId === 'screenDB'){
+    document.getElementById('bottomNav').classList.add('show');
+  }
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(navId).classList.add('active');
+  showScreen(screenId);
+  if(screenId === 'screenDB') renderDB();
+}
+
+// ════════════════════════════════
+// CSV / EMPLOYEE LOADING
+// ════════════════════════════════
+function handleCSV(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+
+  if(file.name.endsWith('.csv')){
+    reader.onload = e => parseCSV(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    // xlsx — use SheetJS via CDN
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type:'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_csv(sheet);
+        parseCSV(rows);
+      } catch(err){
+        showUploadStatus('Error al leer Excel: ' + err.message, false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseCSV(text){
+  const lines = text.trim().split('\n');
+  const newEmp = {};
+  let count = 0;
+  for(let line of lines){
+    line = line.trim();
+    if(!line) continue;
+    const parts = line.split(/[,;\t]/);
+    if(parts.length < 2) continue;
+    const num = parts[0].trim().replace(/"/g,'');
+    const name = parts.slice(1).join(' ').trim().replace(/"/g,'');
+    if(/^\d{5}$/.test(num) && name){
+      newEmp[num] = name;
+      count++;
+    }
+  }
+  if(count === 0){
+    showUploadStatus('No se encontraron registros válidos. Verifica el formato.', false);
+    return;
+  }
+  employees = newEmp;
+  localStorage.setItem('employees', JSON.stringify(employees));
+  showUploadStatus(`✓ ${count} empleados cargados correctamente`, true);
+  updateEmpPreview();
+  updateLoginStatus();
+}
+
+function showUploadStatus(msg, ok){
+  const el = document.getElementById('uploadStatus');
+  el.textContent = msg;
+  el.className = 'upload-status ' + (ok ? 'ok' : 'err');
+}
+
+function updateEmpPreview(){
+  const keys = Object.keys(employees);
+  if(keys.length === 0) return;
+  document.getElementById('empPreview').style.display = 'block';
+  const preview = keys.slice(0,10).map(k=>`<span style="color:var(--accent)">${k}</span>  ${employees[k]}`).join('<br>');
+  document.getElementById('empList').innerHTML = preview + (keys.length > 10 ? `<br><span style="color:var(--muted)">... y ${keys.length-10} más</span>` : '');
+}
+
+function updateLoginStatus(){
+  const count = Object.keys(employees).length;
+  const el = document.getElementById('loginEmpStatus');
+  if(count > 0){
+    el.style.color = 'var(--success-text)';
+    el.textContent = `✓ ${count} empleados cargados`;
+  } else {
+    el.style.color = 'var(--muted)';
+    el.textContent = 'Sin lista cargada — ve a Configuración';
+  }
+}
+
+// ════════════════════════════════
+// NUMPAD
+// ════════════════════════════════
+function showNumpad(mode){
+  npMode = mode;
+  npVal = '';
+  document.getElementById('npDisplay').textContent = '_ _ _ _ _';
+  document.getElementById('npError').textContent = '';
+  document.getElementById('npOk').disabled = true;
+  document.getElementById('numpadOverlay').classList.add('open');
+}
+
+function closeNumpad(){
+  document.getElementById('numpadOverlay').classList.remove('open');
+}
+
+function npKey(k){
+  if(npVal.length >= 5) return;
+  npVal += k;
+  const disp = npVal.split('').join(' ') + ' _'.repeat(5 - npVal.length);
+  document.getElementById('npDisplay').textContent = disp.trim() || '_ _ _ _ _';
+  document.getElementById('npOk').disabled = npVal.length < 5;
+  document.getElementById('npError').textContent = '';
+}
+
+function npDel(){
+  npVal = npVal.slice(0,-1);
+  const filled = npVal.split('').join(' ');
+  const empty = '_ '.repeat(5 - npVal.length).trim();
+  document.getElementById('npDisplay').textContent = (filled + (filled && empty ? ' ' : '') + empty) || '_ _ _ _ _';
+  document.getElementById('npOk').disabled = true;
+}
+
+function npConfirm(){
+  if(npVal.length !== 5) return;
+  const empKeys = Object.keys(employees);
+  if(empKeys.length === 0){
+    document.getElementById('npError').textContent = '⚠ Primero carga la lista de empleados';
+    return;
+  }
+  const name = employees[npVal];
+  if(!name){
+    document.getElementById('npError').textContent = '✕ # de empleado no encontrado';
+    return;
+  }
+  currentOp = { id: npVal, name };
+  closeNumpad();
+  resetScans();
+  document.getElementById('opName').textContent = name;
+  document.getElementById('opId').textContent = npVal;
+  document.getElementById('opDate').textContent = getDateStr();
+  document.getElementById('bottomNav').classList.add('show');
+  showScreen('screenMain');
+}
+
+// ════════════════════════════════
+// SCANNER
+// ════════════════════════════════
+function startScan(n){
+  if(n === 2 && !scan1Val) return;
+  scanTarget = n;
+  document.getElementById('scannerLabel').textContent = `ESCANEO ${n} — ${n===1?'REFERENCIA':'VERIFICACIÓN'}`;
+  document.getElementById('scannerOverlay').classList.add('open');
+
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    (decodedText) => {
+      onScanSuccess(decodedText);
+    },
+    () => {}
+  ).catch(err => {
+    stopScan();
+    alert('No se pudo acceder a la cámara: ' + err);
+  });
+}
+
+function stopScan(){
+  if(html5QrCode){
+    html5QrCode.stop().catch(()=>{});
+    html5QrCode = null;
+  }
+  document.getElementById('scannerOverlay').classList.remove('open');
+}
+
+function onScanSuccess(code){
+  stopScan();
+  if(scanTarget === 1){
+    scan1Val = code;
+    document.getElementById('scan1card').classList.add('done');
+    document.getElementById('scan1action').textContent = '✓ ESCANEADO';
+    document.getElementById('scan1val').textContent = code;
+    document.getElementById('scan1val').style.display = 'block';
+    // Unlock scan 2
+    const c2 = document.getElementById('scan2card');
+    c2.classList.remove('locked');
+    document.getElementById('scan2action').style.color = 'var(--accent)';
+    document.getElementById('scan2action').textContent = 'TOCA PARA ESCANEAR';
+    document.getElementById('resultBanner').className = 'result-banner';
+  } else {
+    scan2Val = code;
+    document.getElementById('scan2card').classList.add('done');
+    document.getElementById('scan2action').textContent = '✓ ESCANEADO';
+    document.getElementById('scan2val').textContent = code;
+    document.getElementById('scan2val').style.display = 'block';
+    compareAndSave();
+  }
+}
+
+// ════════════════════════════════
+// COMPARE & SAVE
+// ════════════════════════════════
+function compareAndSave(){
+  const match = scan1Val === scan2Val;
+  const banner = document.getElementById('resultBanner');
+  banner.className = 'result-banner show ' + (match ? 'match' : 'nomatch');
+  banner.textContent = match
+    ? '✓ EL NÚMERO DE PARTE COINCIDE'
+    : '✕ NO COINCIDE — VUELVE A VERIFICAR EL MATERIAL';
+
+  const now = new Date();
+  const record = {
+    emp: currentOp.id,
+    name: currentOp.name,
+    scan1: scan1Val,
+    scan2: scan2Val,
+    fecha: `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${String(now.getFullYear()).slice(-2)}`,
+    hora: getTimeStr(),
+    fileDate: getFileDateStr(),
+    match: match,
+  };
+  dbRecords.push(record);
+  localStorage.setItem('verif_records', JSON.stringify(dbRecords));
+
+  // Auto-sync if Drive connected
+  if(accessToken) syncToDrive();
+}
+
+function resetScans(){
+  scan1Val = null;
+  scan2Val = null;
+
+  const c1 = document.getElementById('scan1card');
+  const c2 = document.getElementById('scan2card');
+  c1.classList.remove('done');
+  c2.classList.remove('done');
+  c2.classList.add('locked');
+
+  document.getElementById('scan1action').textContent = 'TOCA PARA ESCANEAR';
+  document.getElementById('scan1val').style.display = 'none';
+  document.getElementById('scan2action').style.color = 'var(--muted)';
+  document.getElementById('scan2action').textContent = 'ESCANEA PRIMERO EL 1°';
+  document.getElementById('scan2val').style.display = 'none';
+  document.getElementById('resultBanner').className = 'result-banner';
+}
+
+// ════════════════════════════════
+// DATABASE RENDER
+// ════════════════════════════════
+function renderDB(){
+  const today = getFileDateStr();
+  document.getElementById('dbDateBadge').textContent = today;
+  const todayRecords = dbRecords.filter(r => r.fileDate === today);
+  const body = document.getElementById('dbBody');
+  const empty = document.getElementById('dbEmpty');
+  body.innerHTML = '';
+
+  if(todayRecords.length === 0){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  todayRecords.slice().reverse().forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.emp}</td>
+      <td title="${r.scan1}">${r.scan1.length > 14 ? r.scan1.slice(0,12)+'…' : r.scan1}</td>
+      <td title="${r.scan2}">${r.scan2.length > 14 ? r.scan2.slice(0,12)+'…' : r.scan2}</td>
+      <td>${r.fecha}</td>
+      <td>${r.hora}</td>
+      <td class="${r.match?'badge-ok':'badge-fail'}">${r.match?'✓ OK':'✕ FALLO'}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+// ════════════════════════════════
+// CSV DOWNLOAD
+// ════════════════════════════════
+function downloadCSV(){
+  const today = getFileDateStr();
+  const rows = dbRecords.filter(r => r.fileDate === today);
+  if(rows.length === 0){ alert('No hay registros para hoy.'); return; }
+
+  const header = '# EMPLEADO,NOMBRE,SCAN 1,SCAN 2,FECHA,HORA,RESULTADO\n';
+  const body = rows.map(r =>
+    `${r.emp},"${r.name}","${r.scan1}","${r.scan2}",${r.fecha},${r.hora},${r.match?'COINCIDE':'NO COINCIDE'}`
+  ).join('\n');
+
+  const blob = new Blob([header + body], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${today}_escaneos.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════
+// GOOGLE DRIVE
+// ════════════════════════════════
+function saveSetupAndReturn(){
+  const cid = document.getElementById('driveClientId').value.trim();
+  if(cid){ driveClientId = cid; localStorage.setItem('driveClientId', cid); }
+  updateEmpPreview();
+  updateLoginStatus();
+  alert('✓ Configuración guardada');
+}
+
+function initGoogleAuth(){
+  const cid = document.getElementById('driveClientId').value.trim() || driveClientId;
+  if(!cid){
+    alert('Ingresa tu Google Client ID primero.');
+    return;
+  }
+  driveClientId = cid;
+  localStorage.setItem('driveClientId', cid);
+
+  // Load Google Identity Services
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = () => {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: driveClientId,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: (resp) => {
+        if(resp.access_token){
+          accessToken = resp.access_token;
+          document.getElementById('authStatus').className = 'auth-status connected';
+          document.getElementById('authStatus').innerHTML = '<span class="dot green"></span>Conectado a Google Drive';
+        }
+      },
+    });
+    client.requestAccessToken();
+  };
+  document.head.appendChild(s);
+}
+
+async function syncToDrive(){
+  if(!accessToken){
+    document.getElementById('driveStatus').className = 'drive-status err';
+    document.getElementById('driveStatus').textContent = '✕ No conectado a Google Drive. Ve a Configuración.';
+    return;
+  }
+
+  const today = getFileDateStr();
+  const rows = dbRecords.filter(r => r.fileDate === today);
+  if(rows.length === 0){
+    document.getElementById('driveStatus').className = 'drive-status info';
+    document.getElementById('driveStatus').textContent = 'Sin registros para sincronizar hoy.';
+    return;
+  }
+
+  document.getElementById('driveStatus').className = 'drive-status info';
+  document.getElementById('driveStatus').textContent = '⟳ Sincronizando con Drive...';
+
+  try {
+    // 1. Find or create folder named today
+    const folderName = today;
+    let folderId = await findDriveFolder(folderName);
+    if(!folderId) folderId = await createDriveFolder(folderName);
+
+    // 2. Build CSV content
+    const header = '# EMPLEADO,NOMBRE,SCAN 1,SCAN 2,FECHA,HORA,RESULTADO\n';
+    const body = rows.map(r =>
+      `${r.emp},"${r.name}","${r.scan1}","${r.scan2}",${r.fecha},${r.hora},${r.match?'COINCIDE':'NO COINCIDE'}`
+    ).join('\n');
+    const csvContent = header + body;
+    const fileName = `${today}_escaneos.csv`;
+
+    // 3. Check if file exists in folder, update or create
+    const existingFileId = await findFileInFolder(fileName, folderId);
+    if(existingFileId){
+      await updateDriveFile(existingFileId, csvContent);
+    } else {
+      await createDriveFile(fileName, csvContent, folderId);
+    }
+
+    document.getElementById('driveStatus').className = 'drive-status ok';
+    document.getElementById('driveStatus').textContent = `✓ Sincronizado: ${rows.length} registros → Drive/${folderName}/${fileName}`;
+  } catch(err){
+    document.getElementById('driveStatus').className = 'drive-status err';
+    document.getElementById('driveStatus').textContent = '✕ Error al sincronizar: ' + err.message;
+  }
+}
+
+async function findDriveFolder(name){
+  const q = encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  const data = await res.json();
+  return data.files && data.files.length > 0 ? data.files[0].id : null;
+}
+
+async function createDriveFolder(name){
+  const res = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder' })
+  });
+  const data = await res.json();
+  return data.id;
+}
+
+async function findFileInFolder(name, folderId){
+  const q = encodeURIComponent(`name='${name}' and '${folderId}' in parents and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  const data = await res.json();
+  return data.files && data.files.length > 0 ? data.files[0].id : null;
+}
+
+async function createDriveFile(name, content, folderId){
+  const boundary = '---boundary123';
+  const body = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify({ name, parents: [folderId] }),
+    `--${boundary}`,
+    'Content-Type: text/csv; charset=UTF-8',
+    '',
+    content,
+    `--${boundary}--`
+  ].join('\r\n');
+
+  return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`
+    },
+    body
+  });
+}
+
+async function updateDriveFile(fileId, content){
+  return fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'text/csv; charset=UTF-8'
+    },
+    body: content
+  });
+}
+
+// ════════════════════════════════
+// INIT
+// ════════════════════════════════
+(function init(){
+  const saved = localStorage.getItem('employees');
+  if(saved){
+    employees = JSON.parse(saved);
+    updateLoginStatus();
+    updateEmpPreview();
+  }
+  if(driveClientId){
+    document.getElementById('driveClientId').value = driveClientId;
+  }
+})();
+</script>
+
+<!-- SheetJS for Excel support -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</body>
+</html>
